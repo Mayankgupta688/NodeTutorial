@@ -1,5 +1,6 @@
 var express = require("express")
 var app = express(); 
+var fs = require("fs")
 
 var MongoClient = require("mongodb").MongoClient;
 var url = "mongodb://localhost:27017/employees";
@@ -33,6 +34,7 @@ app.get("/employees/:name", function(req, res) {
         var userName = req.params.name
         employeeListCollection.find({name: userName}).toArray(function(err, result) {
             var employeeList = result;
+            database.close();
             res.send(employeeList)
         });
     });
