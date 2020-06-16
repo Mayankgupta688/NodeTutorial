@@ -1,37 +1,59 @@
- var express = require("express");
- var fs = require("fs");
- var bodyParser = require("body-parser");
-const { BSONType } = require("mongodb");
+var express = require("express");
+var fs = require("fs");
+var bodyParser = require("body-parser");
+var MongoClient = require("mongodb").MongoClient;
+var url = "mongodb://localhost:27017/employees";
 
- var app = express();
+var app = express();
 
- app.use(bodyParser.json())
- app.use(bodyParser.urlencoded({extended: true}))
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Authorization, X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Allow-Request-Method"
+    );
+    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
+    res.header("Allow", "GET, POST, OPTIONS, PUT, DELETE");
+    next();
+    });
 
-app.use(function(req, res, next) {
-    if(req.originalUrl == "/") {
-        return next();
-    } else if(req.originalUrl == "/postdata") {
-        if(req.body.userName == "Mayank") {
-            res.send("Cannot Process")
-        } else {
-            return next();
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({extended: true}))
+
+app.get("/employees", function(req, res) {
+
+    res.header("Access-Control-Allow-Origin", "*")
+
+    MongoClient.connect(url, function(err, database) {
+        if(err) {
+            return
         }
-    }
+        var myDatabase = database.db("employees");
+        var employeeListCollection = myDatabase.collection("employeeList");
+
+        employeeListCollection.find({}).toArray(function(err, result) {
+            var employeeList = result;
+            res.send(employeeList)
+        });
+    });
+});
+
+app.post("/addemployees", function(req, res) {
+
+    MongoClient.connect(url, function(err, database) {
+        if(err) {
+            return
+        }
+        var myDatabase = database.db("employees");
+        var employeeListCollection = myDatabase.collection("employeeList");
+
+        employeeListCollection.insertOne({name: req.body.userName, id: req.body.userId, avatar: req.body.userAvatar, createdAt: req.body.userCreatedAt}, function(err, result) {
+            database.close()
+            res.send("Data Inserted...")
+        });
+    });
+    
 })
 
- app.get("/", function(req, res) {
-     fs.readFile("./template/index.html", function(err, data) {
-         res.send(data.toString());
-     })
- });
 
- app.post("/postdata", function(req, res) {
-     res.send("Data Updated...")
- })
-
- app.post("/postother", function(req, res) {
-     res.send("Other Data Added...")
- })
-
- app.listen(8000)
+app.listen(8000)
